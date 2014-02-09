@@ -43,6 +43,8 @@ public class Player
 
 	public void move()
 	{
+		moveSpeed = keyPressed( "lshift" ) ? 150 : 50;
+		
 		//	move up and down with r and f on key released
 		if( !keyPressed( "r" ) && rPressed ) yPos -= 300;
 		if( !keyPressed( "f" ) && fPressed ) yPos += 300;
@@ -75,12 +77,16 @@ public class Player
 		//	moving algorithm
 		double absMouseX = MouseInfo.getPointerInfo().getLocation().x;
 		double absMouseY = MouseInfo.getPointerInfo().getLocation().y;
-		if( abs( - ( Display.getX() + Display.getWidth() / 2 - absMouseX ) / mouseSensitivity ) > turnSensitivity ) camAngX += - ( Display.getX() + Display.getWidth() / 2 - absMouseX ) / turnSpeed;
-		if( abs( - ( Display.getY() + Display.getHeight() / 2 - absMouseY ) / mouseSensitivity ) > turnSensitivity ) camAngY += - ( Display.getY() + Display.getHeight() / 2 - absMouseY ) / turnSpeed / 2;
+		if( abs( - ( Display.getX() + Display.getWidth() / 2 - absMouseX ) / mouseSensitivity ) > turnSensitivity ) camAngX = ( camAngX + ( - ( Display.getX() + Display.getWidth() / 2 - absMouseX ) / turnSpeed ) ) % 360;
+		if( abs( - ( Display.getY() + Display.getHeight() / 2 - absMouseY ) / mouseSensitivity ) > turnSensitivity ) camAngY = ( camAngY + ( - ( Display.getY() + Display.getHeight() / 2 - absMouseY ) / turnSpeed / 2 ) ) % 360;
 		if( absMouseX >= Display.getX() + Display.getWidth() / 2 + mouseSensitivity ) mouseControl.mouseMove( Display.getX() + Display.getWidth() / 2 + (int)mouseSensitivity, MouseInfo.getPointerInfo().getLocation().y );
 		if( absMouseX <= Display.getX() + Display.getWidth() / 2 - mouseSensitivity ) mouseControl.mouseMove( Display.getX() + Display.getWidth() / 2 - (int)mouseSensitivity, MouseInfo.getPointerInfo().getLocation().y );
 		if( absMouseY >= Display.getY() + Display.getHeight() / 2 + mouseSensitivity ) mouseControl.mouseMove( MouseInfo.getPointerInfo().getLocation().x, Display.getY() + Display.getHeight() / 2 + (int)mouseSensitivity );
 		if( absMouseY <= Display.getY() + Display.getHeight() / 2 - mouseSensitivity ) mouseControl.mouseMove( MouseInfo.getPointerInfo().getLocation().x, Display.getY() + Display.getHeight() / 2 - (int)mouseSensitivity );
+		
+		//	don't let angles be negative
+		if( camAngX < 0 ) camAngX += 360;
+		if( camAngY < 0 ) camAngY += 360;
 		
 		glRotated( camAngY, 1, 0, 0 );
 		glRotated( camAngX, 0, 1, 0 );
