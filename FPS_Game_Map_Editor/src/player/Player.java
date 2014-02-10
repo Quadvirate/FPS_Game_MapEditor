@@ -38,18 +38,14 @@ public class Player
 		catch( AWTException e )
 		{}
 	}
-	
-	boolean rPressed, fPressed;
 
 	public void move()
 	{
 		moveSpeed = keyPressed( "lshift" ) ? 150 : 50;
 		
 		//	move up and down with r and f on key released
-		if( !keyPressed( "r" ) && rPressed ) yPos -= 300;
-		if( !keyPressed( "f" ) && fPressed ) yPos += 300;
-		rPressed = keyPressed( "r" );
-		fPressed = keyPressed( "f" );
+		if( keyPressed( "r" ) ) yPos -= 30;
+		if( keyPressed( "f" ) ) yPos += 30;
 		
 		//	turning algorithm
 		double camAng = toRadians( camAngX + 90 );

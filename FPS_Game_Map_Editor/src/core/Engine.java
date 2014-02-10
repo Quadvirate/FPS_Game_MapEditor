@@ -3,6 +3,7 @@ package core;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.Scanner;
 import org.lwjgl.BufferUtils;
 import org.lwjgl.LWJGLException;
@@ -15,8 +16,6 @@ import player.Player;
 import static org.lwjgl.opengl.GL11.*;
 import static convenience.Utility.*;
 
-//	TODO : Try hashmap instead of 3d array. 
-
 public class Engine
 {
 
@@ -27,7 +26,7 @@ public class Engine
 
 	private boolean initComplete;
 
-	private byte[][][] map;
+	private HashMap<String, Byte> map = new HashMap<String, Byte>();
 	
 	public int fps;
 	private int fpsCounter;
@@ -50,7 +49,7 @@ public class Engine
 			mainLoop();
 			Display.update();
 			//	try to get as good as fps as possible for testing purposes
-			Display.sync( Integer.MAX_VALUE );
+			Display.sync( 90 );
 		}
 		Display.destroy();
 	}
@@ -90,7 +89,7 @@ public class Engine
 		glBlendFunc( GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA );
 		glEnable( GL_DEPTH_TEST );
 		glDepthFunc( GL_LEQUAL );
-		glCullFace( GL_BACK );
+		glCullFace( GL_FRONT );
 
 		//	Invisible mouse
 		Cursor emptyCursor = null;
@@ -131,20 +130,13 @@ public class Engine
 		{
 			System.out.println( "failed to load map" );
 		}
-		String[] firstLine = mapText.get( 0 ).split( "," );
-		map = new byte[Integer.valueOf( firstLine[1] )][Integer.valueOf( firstLine[2] )][Integer.valueOf( firstLine[3] )];
-
-		for( int i = 0; i < map.length; i++ )
-			for( int j = 0; j < map[0].length; j++ )
-				for( int k = 0; k < map[0][0].length; k++ )
-					map[i][j][k] = -128;
 
 		//	load map
-		for( int i = 1; i < mapText.size(); i++ )
+		for( int i = 0; i < mapText.size(); i++ )
 		{
 			String[] currStr = mapText.get( i ).split( "," );
 			byte val = Byte.valueOf( currStr[1] );
-			map[Integer.valueOf( currStr[2] )][Integer.valueOf( currStr[3] )][Integer.valueOf( currStr[4] )] = val;
+			map.put( currStr[2] + "," + currStr[3] + "," + currStr[4], val );
 		}
 	}
 
@@ -174,27 +166,22 @@ public class Engine
 
 		glColor3f( 0, .3f, .3f );
 
-		//	go throgh map
-		for( int i = 0; i < map.length; i++ )
+		//	go through map
+		for( String key : map.keySet() )
 		{
-			for( int j = 0; j < map[0].length; j++ )
+			glPushMatrix();
+
+			String[] currStr = key.split( "," );
+			glTranslated( Integer.valueOf( currStr[0] ) * 2, Integer.valueOf( currStr[2] ) * 2, -Integer.valueOf( currStr[1] ) * 8 * 2 );
+			String directBinaryOf = Integer.toBinaryString( map.get( key ) + 128 );
+			String binaryOf = String.format( "%08d", Integer.valueOf( directBinaryOf ) );
+			for( char b : binaryOf.toCharArray() )
 			{
-				for( int k = 0; k < map[0][0].length; k++ )
-				{
-					glPushMatrix();
-
-					glTranslated( i * 2, k * 2, -j * 8 * 2 );
-					String directBinaryOf = Integer.toBinaryString( map[i][j][k] + 128 );
-					String binaryOf = String.format( "%08d", Integer.valueOf( directBinaryOf ) );
-					for( char b : binaryOf.toCharArray() )
-					{
-						if( b == '1' ) cube();
-						glTranslated( 0, 0, -2 );
-					}
-
-					glPopMatrix();
-				}
+				if( b == '1' ) cube();
+				glTranslated( 0, 0, -2 );
 			}
+
+			glPopMatrix();
 		}
 
 		//	selection cube
@@ -234,62 +221,38 @@ public class Engine
 		//	box for every byte
 		glColor3f( 0, 0, .4f );
 		glLineWidth( 3 );
-		for( int i = 0; i < map.length; i++ ) for( int j = 0; j < map[0].length; j++ ) for( int k = 0; k < map[0][0].length; k++ ) 
+		for( String key : map.keySet() )
 		{
 			glPushMatrix();
-			glTranslated( i * 2, k * 2, -j * 2 * 8 - 7 );
+			String[] currStr = key.split( "," );
+			glTranslated( Integer.valueOf( currStr[0] ) * 2, Integer.valueOf( currStr[2] ) * 2, -Integer.valueOf( currStr[1] ) * 8 * 2 - 7 );
 			glScaled( 1, 1, 8 );
 			lineCube();
 			glPopMatrix();
 		}
 
 		glPopMatrix();
-		
+
 		//	block adding / removal logic
-		boolean inGrid = xPos < map.length && xPos >= 0 && zPos / 8 < map[0].length && zPos >= 0 && yPos < map[0][0].length && yPos >= 0;
+		boolean inByte = map.get( xPos + "," + zPos / 8 + "," + yPos ) != null;
 		if( !keyPressed( "return" ) && returnPressed )
 		{
-			if( inGrid && !keyPressed( "lshift" ) )
+			if( inByte && !keyPressed( "lshift" ) )
 			{
-				String currByte = String.format( "%08d", Integer.valueOf( Integer.toBinaryString( map[xPos][zPos / 8][yPos] + 128 ) ) );
+				String currByte = String.format( "%08d", Integer.valueOf( Integer.toBinaryString( map.get( xPos + "," + zPos / 8 + "," + yPos ) + 128 ) ) );
 				currByte = currByte.substring( 0, zPos % 8 ) + ( currByte.charAt( zPos % 8 ) == '0' ? 1 : 0 ) + currByte.substring( zPos % 8 + 1 );
-				map[xPos][zPos / 8][yPos] = (byte) ( Integer.parseInt( currByte, 2 ) - 128 );
+				map.put( xPos + "," + zPos / 8 + "," + yPos, (byte) ( Integer.parseInt( currByte, 2 ) - 128 ) );
 			}
-			else if( inGrid && keyPressed( "lshift" ) )
+			else if( inByte )
 			{
-				int maxX = 0, maxY = 0, maxZ = 0;
-				for( int i = 0; i < map.length; i++ ) for( int j = 0; j < map[0].length; j++ ) for( int k = 0; k < map[0][0].length; k++ )
-				{
-					if( map[i][j][k] != -128 && i > maxX ) maxX = i;
-					if( map[i][j][k] != -128 && j > maxZ ) maxZ = j;
-					if( map[i][j][k] != -128 && k > maxY ) maxY = k;
-				}
-				maxX++; maxY++; maxZ++;
-				if( maxX != map.length || maxY != map[0][0].length || maxZ != map[0].length )
-				{
-					byte[][][] old = new byte[map.length][map[0].length][map[0][0].length];
-					for( int i = 0; i < map.length; i++ ) for( int j = 0; j < map[0].length; j++ ) for( int k = 0; k < map[0][0].length; k++ )
-						old[i][j][k] = map[i][j][k];
-					map = new byte[maxX][maxZ][maxY];
-					for( int i = 0; i < map.length; i++ ) for( int j = 0; j < map[0].length; j++ ) for( int k = 0; k < map[0][0].length; k++ )
-						map[i][j][k] = old[i][j][k];
-				}
+				ArrayList<String> toRemove = new ArrayList<String>();
+				for( String key : map.keySet() ) if( map.get( key ) == -128 ) toRemove.add( key );
+				for( String remove : toRemove ) map.remove( remove );
 			}
-			else if( xPos >= 0 && yPos >= 0 && zPos >= 0 )
+			else if( xPos >= 0 &&  yPos >= 0 && zPos >= 0 )
 			{
-				byte[][][] old = new byte[map.length][map[0].length][map[0][0].length];
-				for( int i = 0; i < map.length; i++ ) for( int j = 0; j < map[0].length; j++ ) for( int k = 0; k < map[0][0].length; k++ )
-					old[i][j][k] = map[i][j][k];
-				map = new byte[xPos >= old.length ? xPos + 1 : old.length][zPos / 8 >= old[0].length ? zPos / 8 + 1 : old[0].length][yPos >= old[0][0].length ? yPos + 1 : old[0][0].length];
-				for( int i = 0; i < map.length; i++ ) for( int j = 0; j < map[0].length; j++ ) for( int k = 0; k < map[0][0].length; k++ )
-					map[i][j][k] = -128;
-				for( int i = 0; i < old.length; i++ ) for( int j = 0; j < old[0].length; j++ ) for( int k = 0; k < old[0][0].length; k++ )
-					map[i][j][k] = old[i][j][k];
-				String newByte = "00000000";
-				newByte = newByte.substring( 0, zPos % 8 ) + ( newByte.charAt( zPos % 8 ) == '0' ? 1 : 0 ) + newByte.substring( zPos % 8 + 1 );
-				map[xPos][zPos / 8][yPos] = (byte) ( Integer.parseInt( newByte, 2 ) - 128 );
+				map.put( xPos + "," + zPos / 8 + "," + yPos, (byte) ( Integer.parseInt( "00000000".substring( 0, zPos % 8 ) + "1" + "00000000".substring( zPos % 8 + 1 ), 2 ) - 128 ) );
 			}
-			
 		}
 		returnPressed = keyPressed( "return" );
 		
@@ -306,7 +269,7 @@ public class Engine
 		glTranslated( 0, 3.5, 0 );
 		basicText( "Block xPos " + xPos + " yPos " + yPos + " zPos " + zPos );
 		glTranslated( 0, 3.5, 0 );
-		basicText( "Grid size " + map.length + " " + map[0].length + " " + map[0][0].length );
+		basicText( "Bytes " + map.size() );
 		
 		glPopMatrix();
 
