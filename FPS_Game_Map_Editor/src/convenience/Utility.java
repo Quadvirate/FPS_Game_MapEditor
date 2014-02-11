@@ -12,6 +12,18 @@ public class Utility
 		return Keyboard.isKeyDown( Keyboard.getKeyIndex( key.toUpperCase() ) );
 	}
 
+	public static boolean anyKeyPressed()
+	{
+		Keyboard.next();
+		return Keyboard.getEventKeyState();
+	}
+	
+	public static String getKeyPressed()
+	{
+		Keyboard.next();
+		return Keyboard.getKeyName( Keyboard.getEventKey() );
+	}
+	
 	public static void cube()
 	{
 		glBegin( GL_QUADS );
@@ -1001,6 +1013,20 @@ public class Utility
 				glBegin( GL_LINES );
 				glVertex2d( 0.25, 0.5 );
 				glVertex2d( 0.25, 1.0 );
+				glEnd();
+			}
+			else if( a == '|' )
+			{
+				glBegin( GL_LINES );
+				glVertex2d( 0.25, -1.25 );
+				glVertex2d( 0.25, 1.75 );
+				glEnd();
+			}
+			else if( a == '_' )
+			{
+				glBegin( GL_LINES );
+				glVertex2d( 0.0, 1.0 );
+				glVertex2d( 0.5, 1.0 );
 				glEnd();
 			}
 			glPopMatrix();

@@ -1,7 +1,10 @@
 package core;
 
+import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileNotFoundException;
+import java.io.FileWriter;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Scanner;
@@ -18,7 +21,23 @@ import static convenience.Utility.*;
 
 public class Engine
 {
-
+	
+	/* CONTROLS : 
+	 * wasd rf : moving
+	 * mouse : turning
+	 * wasd rf + shift : moving double speed
+	 * uhjk ol : moving editing block 
+	 * enter : add / remove block
+	 * shift + enter : remove all bytes that are empty
+	 * m -> name -> enter : save map to any name
+	 * c + enter : clear all bytes
+	 */
+	
+	/*
+	 * TODO :
+	 * load map by pressing n
+	 */
+	
 	public Player testPlayer;
 
 	private Scanner mapReader;
@@ -26,12 +45,14 @@ public class Engine
 
 	private boolean initComplete;
 
-	private HashMap<String, Byte> map = new HashMap<String, Byte>();
-	
-	public int fps;
+	private HashMap< String, Byte > map = new HashMap< String, Byte >();
+
+	private int fps;
 	private int fpsCounter;
 	private long lastFPS;
 	private boolean initFpsCounter;
+	private String mapName;
+	private boolean acceptNameInput;
 
 	public void start()
 	{
@@ -48,8 +69,7 @@ public class Engine
 			manageFPS();
 			mainLoop();
 			Display.update();
-			//	try to get as good as fps as possible for testing purposes
-			Display.sync( 90 );
+			Display.sync( Integer.MAX_VALUE );
 		}
 		Display.destroy();
 	}
@@ -100,18 +120,22 @@ public class Engine
 		catch( LWJGLException e1 )
 		{}
 	}
-	
+
 	private void manageFPS()
 	{
-		if( !initFpsCounter ) { lastFPS = (Sys.getTime() * 1000) / Sys.getTimerResolution(); initFpsCounter = true; }
-		
-	    if ( ( Sys.getTime() * 1000 ) / Sys.getTimerResolution() - lastFPS > 1000 )
-	    {
-	        fps = fpsCounter;
-	        fpsCounter = 0;
-	        lastFPS += 1000;
-	    }
-	    fpsCounter++;
+		if( !initFpsCounter )
+		{
+			lastFPS = ( Sys.getTime() * 1000 ) / Sys.getTimerResolution();
+			initFpsCounter = true;
+		}
+
+		if( ( Sys.getTime() * 1000 ) / Sys.getTimerResolution() - lastFPS > 1000 )
+		{
+			fps = fpsCounter;
+			fpsCounter = 0;
+			lastFPS += 1000;
+		}
+		fpsCounter++ ;
 	}
 
 	private void loadMap()
@@ -143,18 +167,59 @@ public class Engine
 	{
 		testPlayer = new Player();
 		loadMap();
+		saving = false;
+		mapName = "default";
+		acceptNameInput = false;
 	}
 
 	public int xPos, yPos, zPos;
 	public boolean uPressed, jPressed, hPressed, kPressed, oPressed, lPressed, returnPressed;
 
+	private boolean saving;
+
 	private void mainLoop()
 	{
-		//	background red
-		glClearColor( .4f, .4f, .4f, 1 );
-		glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT );
+		//	background grey
+		background( 100, 100, 100 );
 
-		//	draw map
+		//	if not saving the map
+		if( !saving )
+		{
+			//	draw map
+			drawMap();
+
+			//	block adding / removal logic
+			editingLogic();
+
+			//	display text
+			drawText();
+
+			//	cross hair
+			drawCrossHair();
+
+			//	check for saving
+			if( keyPressed( "m" ) )
+			{
+				saving = true;
+				acceptNameInput = false;
+			}
+		}
+		else
+		{
+			//	save menu
+			drawSaveMenu();
+		}
+
+	}
+
+	private void background( double r, double g, double b )
+	{
+		glClearColor( (float) ( r / 255. ), (float) ( g / 255. ), (float) ( b / 255. ), 1 );
+		glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT );
+	}
+
+	private void drawMap()
+	{
 		glPushMatrix();
 
 		//	move player
@@ -187,24 +252,24 @@ public class Engine
 		glColor3f( 1, 0, 0 );
 		glPushMatrix();
 
-		if( !keyPressed( "u" ) && uPressed ) if( testPlayer.camAngX >= 315 || testPlayer.camAngX <= 45 ) zPos++;
-											 else if( testPlayer.camAngX <= 135 && testPlayer.camAngX >= 45 ) xPos++;
-											 else if( testPlayer.camAngX <= 225 && testPlayer.camAngX >= 135 ) zPos--;
-											 else xPos--;
-		if( !keyPressed( "j" ) && jPressed ) if( testPlayer.camAngX >= 315 || testPlayer.camAngX <= 45 ) zPos--;
-											 else if( testPlayer.camAngX <= 135 && testPlayer.camAngX >= 45 ) xPos--;
-											 else if( testPlayer.camAngX <= 225 && testPlayer.camAngX >= 135 ) zPos++;
-											 else xPos++;
-		if( !keyPressed( "h" ) && hPressed ) if( testPlayer.camAngX >= 315 || testPlayer.camAngX <= 45 ) xPos--;
-											 else if( testPlayer.camAngX <= 135 && testPlayer.camAngX >= 45 ) zPos++;
-											 else if( testPlayer.camAngX <= 225 && testPlayer.camAngX >= 135 ) xPos++;
-											 else zPos--;
-		if( !keyPressed( "k" ) && kPressed ) if( testPlayer.camAngX >= 315 || testPlayer.camAngX <= 45 ) xPos++;
-											 else if( testPlayer.camAngX <= 135 && testPlayer.camAngX >= 45 ) zPos--;
-											 else if( testPlayer.camAngX <= 225 && testPlayer.camAngX >= 135 ) xPos--;
-											 else zPos++;
-		if( !keyPressed( "o" ) && oPressed ) yPos++;
-		if( !keyPressed( "l" ) && lPressed ) yPos--;
+		if( !keyPressed( "u" ) && uPressed ) if( testPlayer.camAngX >= 315 || testPlayer.camAngX <= 45 ) zPos++ ;
+		else if( testPlayer.camAngX <= 135 && testPlayer.camAngX >= 45 ) xPos++ ;
+		else if( testPlayer.camAngX <= 225 && testPlayer.camAngX >= 135 ) zPos-- ;
+		else xPos-- ;
+		if( !keyPressed( "j" ) && jPressed ) if( testPlayer.camAngX >= 315 || testPlayer.camAngX <= 45 ) zPos-- ;
+		else if( testPlayer.camAngX <= 135 && testPlayer.camAngX >= 45 ) xPos-- ;
+		else if( testPlayer.camAngX <= 225 && testPlayer.camAngX >= 135 ) zPos++ ;
+		else xPos++ ;
+		if( !keyPressed( "h" ) && hPressed ) if( testPlayer.camAngX >= 315 || testPlayer.camAngX <= 45 ) xPos-- ;
+		else if( testPlayer.camAngX <= 135 && testPlayer.camAngX >= 45 ) zPos++ ;
+		else if( testPlayer.camAngX <= 225 && testPlayer.camAngX >= 135 ) xPos++ ;
+		else zPos-- ;
+		if( !keyPressed( "k" ) && kPressed ) if( testPlayer.camAngX >= 315 || testPlayer.camAngX <= 45 ) xPos++ ;
+		else if( testPlayer.camAngX <= 135 && testPlayer.camAngX >= 45 ) zPos-- ;
+		else if( testPlayer.camAngX <= 225 && testPlayer.camAngX >= 135 ) xPos-- ;
+		else zPos++ ;
+		if( !keyPressed( "o" ) && oPressed ) yPos++ ;
+		if( !keyPressed( "l" ) && lPressed ) yPos-- ;
 		uPressed = keyPressed( "u" );
 		jPressed = keyPressed( "j" );
 		hPressed = keyPressed( "h" );
@@ -216,8 +281,8 @@ public class Engine
 		glLineWidth( 10 );
 		lineCube();
 		glPopMatrix();
-		
-		//	box for every byte
+
+		//	blue box for every byte
 		glColor3f( 0, 0, .4f );
 		glLineWidth( 3 );
 		for( String key : map.keySet() )
@@ -229,37 +294,60 @@ public class Engine
 			lineCube();
 			glPopMatrix();
 		}
+		
+		//	red lines for axes
+		glColor3f( .4f, 0, 0 );
+		glBegin( GL_LINES );
+		glVertex3d( 0, 0, 0 );
+		glVertex3d( 0, 0, -10000 );
+		glVertex3d( 0, 0, 0 );
+		glVertex3d( 0, 10000, 0 );
+		glVertex3d( 0, 0, 0 );
+		glVertex3d( 10000, 0, 0 );
+		glEnd();
 
 		glPopMatrix();
+	}
 
-		//	block adding / removal logic
+	private void editingLogic()
+	{
 		boolean inByte = map.get( xPos + "," + zPos / 8 + "," + yPos ) != null;
+		//	if enter is pressed
 		if( !keyPressed( "return" ) && returnPressed )
 		{
-			if( inByte && !keyPressed( "lshift" ) )
+			//	change value of byte if it already exists
+			if( inByte && !keyPressed( "lshift" ) && xPos >= 0 && yPos >= 0 && zPos >= 0 )
 			{
 				String currByte = String.format( "%08d", Integer.valueOf( Integer.toBinaryString( map.get( xPos + "," + zPos / 8 + "," + yPos ) + 128 ) ) );
 				currByte = currByte.substring( 0, zPos % 8 ) + ( currByte.charAt( zPos % 8 ) == '0' ? 1 : 0 ) + currByte.substring( zPos % 8 + 1 );
 				map.put( xPos + "," + zPos / 8 + "," + yPos, (byte) ( Integer.parseInt( currByte, 2 ) - 128 ) );
 			}
-			else if( inByte )
+			//	remove bytes which are empty
+			else if( keyPressed( "lshift" ) )
 			{
-				ArrayList<String> toRemove = new ArrayList<String>();
-				for( String key : map.keySet() ) if( map.get( key ) == -128 ) toRemove.add( key );
-				for( String remove : toRemove ) map.remove( remove );
+				ArrayList< String > toRemove = new ArrayList< String >();
+				for( String key : map.keySet() )
+					if( map.get( key ) == -128 ) toRemove.add( key );
+				for( String remove : toRemove )
+					map.remove( remove );
 			}
-			else if( xPos >= 0 &&  yPos >= 0 && zPos >= 0 )
+			//	add a byte with a new block
+			else if( xPos >= 0 && yPos >= 0 && zPos >= 0 )
 			{
 				map.put( xPos + "," + zPos / 8 + "," + yPos, (byte) ( Integer.parseInt( "00000000".substring( 0, zPos % 8 ) + "1" + "00000000".substring( zPos % 8 + 1 ), 2 ) - 128 ) );
 			}
 		}
 		returnPressed = keyPressed( "return" );
 		
-		//	display text and such
+		if( keyPressed( "c" ) && keyPressed( "return" ) ) map.clear();
+	}
+
+	private void drawText()
+	{
 		glColor3f( 1, 1, 1 );
 		glLineWidth( 1 );
 		glPushMatrix();
-		
+
 		glTranslated( 250, 700, 0 );
 		glScaled( 12, -8, 1 );
 		basicText( "FPS - " + fps );
@@ -269,10 +357,12 @@ public class Engine
 		basicText( "Block xPos " + xPos + " yPos " + yPos + " zPos " + zPos );
 		glTranslated( 0, 3.5, 0 );
 		basicText( "Bytes " + map.size() );
-		
-		glPopMatrix();
 
-		//	cross hair
+		glPopMatrix();
+	}
+
+	private void drawCrossHair()
+	{
 		glColor3f( 0, 0, 0 );
 		glBegin( GL_QUADS );
 
@@ -289,4 +379,80 @@ public class Engine
 		glEnd();
 	}
 
+	private void drawSaveMenu()
+	{
+		//	draw rectangle
+		glColor3f( .2f, .2f, .2f );
+		glBegin( GL_QUADS );
+		glVertex2d( -300, 600 );
+		glVertex2d( 300, 600 );
+		glVertex2d( 300, 400 );
+		glVertex2d( -300, 400 );
+		glEnd();
+
+		//	draw text
+		glColor3f( .8f, .8f, .8f );
+		glPushMatrix();
+		glTranslated( -280, 580, 0 );
+		glScaled( 20, -5, 1 );
+		basicText( "Enter filename" );
+		glTranslated( 11, 30, 0 );
+		basicText( "Press enter when done" );
+		glPopMatrix();
+
+		//	draw input rectangle
+		glColor3f( .8f, .8f, .8f );
+		glLineWidth( 5 );
+		glBegin( GL_LINE_LOOP );
+		glVertex2d( -200, 530 );
+		glVertex2d( 200, 530 );
+		glVertex2d( 200, 480 );
+		glVertex2d( -200, 480 );
+		glEnd();
+		glLineWidth( 1 );
+
+		//	draw inputted name for map
+		glPushMatrix();
+		glTranslated( -180, 500, 0 );
+		glScaled( 20, -8, 1 );
+		basicText( mapName );
+		glTranslated( ( mapName.length() - 1 ) * .8, 1, 0 );
+		basicText( "_" );
+
+		glPopMatrix();
+
+		//	get input for name
+		if( anyKeyPressed() && acceptNameInput && !getKeyPressed().equals( "RETURN" ) && !getKeyPressed().equals( "LSHIFT" ) && !getKeyPressed().equals( "RSHIFT" ) && !getKeyPressed().equals( "PERIOD" ) && !getKeyPressed().equals( "COMMA" ) )
+		{
+			if( getKeyPressed().equals( "SPACE" ) ) mapName += "_";
+			else mapName = getKeyPressed().equals( "BACK" ) ? mapName.length() == 0 ? "" : mapName.substring( 0, mapName.length() - 1 ) : keyPressed( "lshift" ) || keyPressed( "rshift" ) ? mapName + getKeyPressed() : mapName + getKeyPressed().toLowerCase();
+			acceptNameInput = false;
+		}
+		if( !anyKeyPressed() ) acceptNameInput = true;
+		
+		//	check if finished saving
+		if( keyPressed( "return" ) )
+		{
+			save();
+			saving = false;
+		}
+	}
+
+	private void save()
+	{
+		//	saves to mapName.txt
+		try
+		{
+			BufferedWriter mapWriter = new BufferedWriter( new FileWriter( "res/" + mapName + ".txt" ), 256000 );
+			for( String key : map.keySet() )
+				mapWriter.write( "v," + map.get( key ) + "," + key + "\n" );
+			mapWriter.close();
+			System.out.println( "saved map to " + mapName + ".txt" );
+		}
+		catch( IOException e )
+		{
+			System.out.println( "failed to save map" );
+		}
+	}
+	
 }

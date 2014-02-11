@@ -43,9 +43,9 @@ public class Player
 	{
 		moveSpeed = keyPressed( "lshift" ) ? 150 : 50;
 		
-		//	move up and down with r and f on key released
-		if( keyPressed( "r" ) ) yPos -= 30;
-		if( keyPressed( "f" ) ) yPos += 30;
+		//	move up and down with r and f
+		if( keyPressed( "r" ) ) yPos -= moveSpeed;
+		if( keyPressed( "f" ) ) yPos += moveSpeed;
 		
 		//	turning algorithm
 		double camAng = toRadians( camAngX + 90 );
