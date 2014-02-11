@@ -89,7 +89,6 @@ public class Engine
 		glBlendFunc( GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA );
 		glEnable( GL_DEPTH_TEST );
 		glDepthFunc( GL_LEQUAL );
-		glCullFace( GL_FRONT );
 
 		//	Invisible mouse
 		Cursor emptyCursor = null;
