@@ -41,9 +41,6 @@ public class Engine
 	
 	public Player testPlayer;
 
-	private Scanner mapReader;
-	private ArrayList< String > mapText;
-
 	private boolean initComplete;
 
 	private HashMap< String, Byte > map = new HashMap< String, Byte >();
@@ -144,23 +141,20 @@ public class Engine
 		//	load map into an array of Strings
 		try
 		{
-			mapReader = new Scanner( new File( "res/" + mapName + ".txt" ) );
-			mapText = new ArrayList< String >();
+			Scanner mapReader = new Scanner( new File( "res/" + mapName + ".txt" ) );
 			while( mapReader.hasNextLine() )
-				mapText.add( mapReader.nextLine() );
+			{
+				//	load map
+				String[] currStr = mapReader.nextLine().split( "," );
+				byte val = Byte.valueOf( currStr[1] );
+				map.put( currStr[2] + "," + currStr[3] + "," + currStr[4], val );
+			}
+			mapReader.close();
 			System.out.println( "\"" + mapName + "\" map loaded" );
 		}
 		catch( FileNotFoundException e )
 		{
 			System.out.println( "failed to load \"" + mapName + "\" map" );
-		}
-
-		//	load map
-		for( int i = 0; i < mapText.size(); i++ )
-		{
-			String[] currStr = mapText.get( i ).split( "," );
-			byte val = Byte.valueOf( currStr[1] );
-			map.put( currStr[2] + "," + currStr[3] + "," + currStr[4], val );
 		}
 	}
 
