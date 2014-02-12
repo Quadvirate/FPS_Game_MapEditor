@@ -31,6 +31,7 @@ public class Engine
 	 * shift + enter : remove all bytes that are empty
 	 * m -> name -> enter : save map to any name
 	 * c + enter : clear all bytes
+	 * n -> name -> enter : load map from name
 	 */
 	
 	/*
@@ -143,15 +144,15 @@ public class Engine
 		//	load map into an array of Strings
 		try
 		{
-			mapReader = new Scanner( new File( "res/map.txt" ) );
+			mapReader = new Scanner( new File( "res/" + mapName + ".txt" ) );
 			mapText = new ArrayList< String >();
 			while( mapReader.hasNextLine() )
 				mapText.add( mapReader.nextLine() );
-			System.out.println( "map loaded" );
+			System.out.println( "\"" + mapName + "\" map loaded" );
 		}
 		catch( FileNotFoundException e )
 		{
-			System.out.println( "failed to load map" );
+			System.out.println( "failed to load \"" + mapName + "\" map" );
 		}
 
 		//	load map
@@ -166,16 +167,16 @@ public class Engine
 	private void init()
 	{
 		testPlayer = new Player();
+		saving = loading = false;
+		mapName = "map";
 		loadMap();
-		saving = false;
-		mapName = "default";
 		acceptNameInput = false;
 	}
 
 	public int xPos, yPos, zPos;
 	public boolean uPressed, jPressed, hPressed, kPressed, oPressed, lPressed, returnPressed;
 
-	private boolean saving;
+	private boolean saving, loading;
 
 	private void mainLoop()
 	{
@@ -183,7 +184,7 @@ public class Engine
 		background( 100, 100, 100 );
 
 		//	if not saving the map
-		if( !saving )
+		if( !saving && !loading )
 		{
 			//	draw map
 			drawMap();
@@ -203,11 +204,23 @@ public class Engine
 				saving = true;
 				acceptNameInput = false;
 			}
+			
+			//	check for loading
+			if( keyPressed( "n" ) )
+			{
+				loading = true;
+				acceptNameInput = false;
+			}
 		}
-		else
+		else if( saving )
 		{
 			//	save menu
 			drawSaveMenu();
+		}
+		else if( loading )
+		{
+			//	load menu
+			drawLoadMenu();
 		}
 
 	}
@@ -395,7 +408,7 @@ public class Engine
 		glPushMatrix();
 		glTranslated( -280, 580, 0 );
 		glScaled( 20, -5, 1 );
-		basicText( "Enter filename" );
+		basicText( "Enter filename to save" );
 		glTranslated( 11, 30, 0 );
 		basicText( "Press enter when done" );
 		glPopMatrix();
@@ -436,6 +449,7 @@ public class Engine
 			save();
 			saving = false;
 		}
+		
 	}
 
 	private void save()
@@ -452,6 +466,66 @@ public class Engine
 		catch( IOException e )
 		{
 			System.out.println( "failed to save map" );
+		}
+	}
+	
+	private void drawLoadMenu()
+	{
+		//	draw rectangle
+		glColor3f( .2f, .2f, .2f );
+		glBegin( GL_QUADS );
+		glVertex2d( -300, 600 );
+		glVertex2d( 300, 600 );
+		glVertex2d( 300, 400 );
+		glVertex2d( -300, 400 );
+		glEnd();
+
+		//	draw text
+		glColor3f( .8f, .8f, .8f );
+		glPushMatrix();
+		glTranslated( -280, 580, 0 );
+		glScaled( 20, -5, 1 );
+		basicText( "Enter filename to load" );
+		glTranslated( 11, 30, 0 );
+		basicText( "Press enter when done" );
+		glPopMatrix();
+
+		//	draw input rectangle
+		glColor3f( .8f, .8f, .8f );
+		glLineWidth( 5 );
+		glBegin( GL_LINE_LOOP );
+		glVertex2d( -200, 530 );
+		glVertex2d( 200, 530 );
+		glVertex2d( 200, 480 );
+		glVertex2d( -200, 480 );
+		glEnd();
+		glLineWidth( 1 );
+
+		//	draw inputted name for map
+		glPushMatrix();
+		glTranslated( -180, 500, 0 );
+		glScaled( 20, -8, 1 );
+		basicText( mapName );
+		glTranslated( ( mapName.length() - 1 ) * .8, 1, 0 );
+		basicText( "_" );
+
+		glPopMatrix();
+
+		//	get input for name
+		if( anyKeyPressed() && acceptNameInput && !getKeyPressed().equals( "RETURN" ) && !getKeyPressed().equals( "LSHIFT" ) && !getKeyPressed().equals( "RSHIFT" ) && !getKeyPressed().equals( "PERIOD" ) && !getKeyPressed().equals( "COMMA" ) )
+		{
+			if( getKeyPressed().equals( "SPACE" ) ) mapName += "_";
+			else mapName = getKeyPressed().equals( "BACK" ) ? mapName.length() == 0 ? "" : mapName.substring( 0, mapName.length() - 1 ) : keyPressed( "lshift" ) || keyPressed( "rshift" ) ? mapName + getKeyPressed() : mapName + getKeyPressed().toLowerCase();
+		}
+		acceptNameInput = false;
+		if( !anyKeyPressed() ) acceptNameInput = true;
+		
+		//	check if finished loading
+		if( keyPressed( "return" ) )
+		{
+			map.clear();
+			loadMap();
+			loading = false;
 		}
 	}
 	
