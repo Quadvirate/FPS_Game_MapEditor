@@ -1,10 +1,16 @@
 package convenience;
 
 import static org.lwjgl.opengl.GL11.*;
+
+import org.lwjgl.Sys;
 import org.lwjgl.input.Keyboard;
 
 public class Utility
 {
+	
+	public static boolean initFpsCounter;
+	public static long lastFPS;
+	public static int fps, fpsCounter;
 
 	//	input : http://www.lwjgl.org/javadoc/org/lwjgl/input/Keyboard.html
 	public static boolean keyPressed( String key )
@@ -24,127 +30,159 @@ public class Utility
 		return Keyboard.getKeyName( Keyboard.getEventKey() );
 	}
 	
+	public static int cubeOffsetX, cubeOffsetY, cubeOffsetZ;
+	
 	public static void cube()
 	{
-		glBegin( GL_QUADS );
+//		glBegin( GL_QUADS );
 
-		glNormal3d( 0, 1, 0 );
-		glVertex3f( 1.0f, 1.0f, -1.0f );
-		glVertex3f( -1.0f, 1.0f, -1.0f );
-		glVertex3f( -1.0f, 1.0f, 1.0f );
-		glVertex3f( 1.0f, 1.0f, 1.0f );
+//		glNormal3d( 0, 1, 0 );
+		//	top
+		glTexCoord2d( 0, 0 );
+		glVertex3f( 1.0f + cubeOffsetX, 1.0f + cubeOffsetY, -1.0f + cubeOffsetZ );
+		glTexCoord2d( 1, 0 );
+		glVertex3f( -1.0f + cubeOffsetX, 1.0f + cubeOffsetY, -1.0f + cubeOffsetZ );
+		glTexCoord2d( 1, 1 );
+		glVertex3f( -1.0f + cubeOffsetX, 1.0f + cubeOffsetY, 1.0f + cubeOffsetZ );
+		glTexCoord2d( 0, 1 );
+		glVertex3f( 1.0f + cubeOffsetX, 1.0f + cubeOffsetY, 1.0f + cubeOffsetZ );
 
-		glNormal3d( 0, -1, 0 );
-		glVertex3f( 1.0f, -1.0f, 1.0f );
-		glVertex3f( -1.0f, -1.0f, 1.0f );
-		glVertex3f( -1.0f, -1.0f, -1.0f );
-		glVertex3f( 1.0f, -1.0f, -1.0f );
+//		glNormal3d( 0, -1, 0 );
+		//	bottom
+		glTexCoord2d( 0, 0 );
+		glVertex3f( 1.0f + cubeOffsetX, -1.0f + cubeOffsetY, 1.0f + cubeOffsetZ );
+		glTexCoord2d( 1, 0 );
+		glVertex3f( -1.0f + cubeOffsetX, -1.0f + cubeOffsetY, 1.0f + cubeOffsetZ );
+		glTexCoord2d( 1, 1 );
+		glVertex3f( -1.0f + cubeOffsetX, -1.0f + cubeOffsetY, -1.0f + cubeOffsetZ );
+		glTexCoord2d( 0, 1 );
+		glVertex3f( 1.0f + cubeOffsetX, -1.0f + cubeOffsetY, -1.0f + cubeOffsetZ );
 
-		glNormal3d( 0, 0, 1 );
-		glVertex3f( 1.0f, 1.0f, 1.0f );
-		glVertex3f( -1.0f, 1.0f, 1.0f );
-		glVertex3f( -1.0f, -1.0f, 1.0f );
-		glVertex3f( 1.0f, -1.0f, 1.0f );
+//		glNormal3d( 0, 0, 1 );
+		//	near
+		glTexCoord2d( 0, 0 );
+		glVertex3f( 1.0f + cubeOffsetX, 1.0f + cubeOffsetY, 1.0f + cubeOffsetZ );
+		glTexCoord2d( 1, 0 );
+		glVertex3f( -1.0f + cubeOffsetX, 1.0f + cubeOffsetY, 1.0f + cubeOffsetZ );
+		glTexCoord2d( 1, 1 );
+		glVertex3f( -1.0f + cubeOffsetX, -1.0f + cubeOffsetY, 1.0f + cubeOffsetZ );
+		glTexCoord2d( 0, 1 );
+		glVertex3f( 1.0f + cubeOffsetX, -1.0f + cubeOffsetY, 1.0f + cubeOffsetZ );
 
-		glNormal3d( 0, 0, -1 );
-		glVertex3f( 1.0f, -1.0f, -1.0f );
-		glVertex3f( -1.0f, -1.0f, -1.0f );
-		glVertex3f( -1.0f, 1.0f, -1.0f );
-		glVertex3f( 1.0f, 1.0f, -1.0f );
+//		glNormal3d( 0, 0, -1 );
+		//	far
+		glTexCoord2d( 0, 1 );
+		glVertex3f( 1.0f + cubeOffsetX, -1.0f + cubeOffsetY, -1.0f + cubeOffsetZ );
+		glTexCoord2d( 1, 1 );
+		glVertex3f( -1.0f + cubeOffsetX, -1.0f + cubeOffsetY, -1.0f + cubeOffsetZ );
+		glTexCoord2d( 1, 0 );
+		glVertex3f( -1.0f + cubeOffsetX, 1.0f + cubeOffsetY, -1.0f + cubeOffsetZ );
+		glTexCoord2d( 0, 0 );
+		glVertex3f( 1.0f + cubeOffsetX, 1.0f + cubeOffsetY, -1.0f + cubeOffsetZ );
 
-		glNormal3d( -1, 0, 0 );
-		glVertex3f( -1.0f, 1.0f, 1.0f );
-		glVertex3f( -1.0f, 1.0f, -1.0f );
-		glVertex3f( -1.0f, -1.0f, -1.0f );
-		glVertex3f( -1.0f, -1.0f, 1.0f );
+//		glNormal3d( -1, 0, 0 );
+		//	left
+		glTexCoord2d( 0, 0 );
+		glVertex3f( -1.0f + cubeOffsetX, 1.0f + cubeOffsetY, 1.0f + cubeOffsetZ );
+		glTexCoord2d( 1, 0 );
+		glVertex3f( -1.0f + cubeOffsetX, 1.0f + cubeOffsetY, -1.0f + cubeOffsetZ );
+		glTexCoord2d( 1, 1 );
+		glVertex3f( -1.0f + cubeOffsetX, -1.0f + cubeOffsetY, -1.0f + cubeOffsetZ );
+		glTexCoord2d( 0, 1 );
+		glVertex3f( -1.0f + cubeOffsetX, -1.0f + cubeOffsetY, 1.0f + cubeOffsetZ );
 
-		glNormal3d( 1, 0, 0 );
-		glVertex3f( 1.0f, 1.0f, -1.0f );
-		glVertex3f( 1.0f, 1.0f, 1.0f );
-		glVertex3f( 1.0f, -1.0f, 1.0f );
-		glVertex3f( 1.0f, -1.0f, -1.0f );
+//		glNormal3d( 1, 0, 0 );
+		//	right
+		glTexCoord2d( 1, 0 );
+		glVertex3f( 1.0f + cubeOffsetX, 1.0f + cubeOffsetY, -1.0f + cubeOffsetZ );
+		glTexCoord2d( 0, 0 );
+		glVertex3f( 1.0f + cubeOffsetX, 1.0f + cubeOffsetY, 1.0f + cubeOffsetZ );
+		glTexCoord2d( 0, 1 );
+		glVertex3f( 1.0f + cubeOffsetX, -1.0f + cubeOffsetY, 1.0f + cubeOffsetZ );
+		glTexCoord2d( 1, 1 );
+		glVertex3f( 1.0f + cubeOffsetX, -1.0f + cubeOffsetY, -1.0f + cubeOffsetZ );
 
-		glEnd();
+//		glEnd();
 
 		
 		
-		//	only set color for the lines ( push/popStyle in processing )
-		glPushAttrib( GL_CURRENT_BIT );
-		glColor3f( 0, 0, 0 );
-		
-		//	same as color but with the line width
-		glPushAttrib( GL_LINE_BIT );
-		glLineWidth( 5 );
-
-		glBegin( GL_LINES );
-
-		glVertex3f( -1.005f, -1.005f, -1.005f );
-		glVertex3f( -1.005f, -1.005f, 1.005f );
-		glVertex3f( -1.005f, -1.005f, 1.005f );
-		glVertex3f( 1.005f, -1.005f, 1.005f );
-		glVertex3f( 1.005f, -1.005f, 1.005f );
-		glVertex3f( 1.005f, -1.005f, -1.005f );
-		glVertex3f( 1.005f, -1.005f, -1.005f );
-		glVertex3f( -1.005f, -1.005f, -1.005f );
-		
-		glVertex3f( -1.005f, 1.005f, -1.005f );
-		glVertex3f( -1.005f, 1.005f, 1.005f );
-		glVertex3f( -1.005f, 1.005f, 1.005f );
-		glVertex3f( 1.005f, 1.005f, 1.005f );
-		glVertex3f( 1.005f, 1.005f, 1.005f );
-		glVertex3f( 1.005f, 1.005f, -1.005f );
-		glVertex3f( 1.005f, 1.005f, -1.005f );
-		glVertex3f( -1.005f, 1.005f, -1.005f );
-		
-		glVertex3f( -1.005f, -1.005f, -1.005f );
-		glVertex3f( -1.005f, 1.005f, -1.005f );
-		glVertex3f( -1.005f, -1.005f, 1.005f );
-		glVertex3f( -1.005f, 1.005f, 1.005f );
-		glVertex3f( 1.005f, -1.005f, 1.005f );
-		glVertex3f( 1.005f, 1.005f, 1.005f );
-		glVertex3f( 1.005f, -1.005f, -1.005f );
-		glVertex3f( 1.005f, 1.005f, -1.005f );
-
-		glEnd();
-		
-		glPopAttrib();
-		
-		glPopAttrib();
+//		//	only set color for the lines ( push/popStyle in processing )
+//		glPushAttrib( GL_CURRENT_BIT );
+//		glColor3f( 0, 0, 0 );
+//		
+//		//	same as color but with the line width
+//		glPushAttrib( GL_LINE_BIT );
+//		glLineWidth( 5 );
+//
+//		glBegin( GL_LINES );
+//
+//		glVertex3f( -1.005f, -1.005f, -1.005f );
+//		glVertex3f( -1.005f, -1.005f, 1.005f );
+//		glVertex3f( -1.005f, -1.005f, 1.005f );
+//		glVertex3f( 1.005f, -1.005f, 1.005f );
+//		glVertex3f( 1.005f, -1.005f, 1.005f );
+//		glVertex3f( 1.005f, -1.005f, -1.005f );
+//		glVertex3f( 1.005f, -1.005f, -1.005f );
+//		glVertex3f( -1.005f, -1.005f, -1.005f );
+//		
+//		glVertex3f( -1.005f, 1.005f, -1.005f );
+//		glVertex3f( -1.005f, 1.005f, 1.005f );
+//		glVertex3f( -1.005f, 1.005f, 1.005f );
+//		glVertex3f( 1.005f, 1.005f, 1.005f );
+//		glVertex3f( 1.005f, 1.005f, 1.005f );
+//		glVertex3f( 1.005f, 1.005f, -1.005f );
+//		glVertex3f( 1.005f, 1.005f, -1.005f );
+//		glVertex3f( -1.005f, 1.005f, -1.005f );
+//		
+//		glVertex3f( -1.005f, -1.005f, -1.005f );
+//		glVertex3f( -1.005f, 1.005f, -1.005f );
+//		glVertex3f( -1.005f, -1.005f, 1.005f );
+//		glVertex3f( -1.005f, 1.005f, 1.005f );
+//		glVertex3f( 1.005f, -1.005f, 1.005f );
+//		glVertex3f( 1.005f, 1.005f, 1.005f );
+//		glVertex3f( 1.005f, -1.005f, -1.005f );
+//		glVertex3f( 1.005f, 1.005f, -1.005f );
+//
+//		glEnd();
+//		
+//		glPopAttrib();
+//		
+//		glPopAttrib();
 		
 	}
 	
 	public static void lineCube()
 	{
-		glBegin( GL_LINES );
+//		glBegin( GL_LINES );
 
-		glVertex3f( -1.005f, -1.005f, -1.005f );
-		glVertex3f( -1.005f, -1.005f, 1.005f );
-		glVertex3f( -1.005f, -1.005f, 1.005f );
-		glVertex3f( 1.005f, -1.005f, 1.005f );
-		glVertex3f( 1.005f, -1.005f, 1.005f );
-		glVertex3f( 1.005f, -1.005f, -1.005f );
-		glVertex3f( 1.005f, -1.005f, -1.005f );
-		glVertex3f( -1.005f, -1.005f, -1.005f );
+		glVertex3f( -1.005f + cubeOffsetX, -1.005f + cubeOffsetY, -1.005f + cubeOffsetZ );
+		glVertex3f( -1.005f + cubeOffsetX, -1.005f + cubeOffsetY, 1.005f + cubeOffsetZ );
+		glVertex3f( -1.005f + cubeOffsetX, -1.005f + cubeOffsetY, 1.005f + cubeOffsetZ );
+		glVertex3f( 1.005f + cubeOffsetX, -1.005f + cubeOffsetY, 1.005f + cubeOffsetZ );
+		glVertex3f( 1.005f + cubeOffsetX, -1.005f + cubeOffsetY, 1.005f + cubeOffsetZ );
+		glVertex3f( 1.005f + cubeOffsetX, -1.005f + cubeOffsetY, -1.005f + cubeOffsetZ );
+		glVertex3f( 1.005f + cubeOffsetX, -1.005f + cubeOffsetY, -1.005f + cubeOffsetZ );
+		glVertex3f( -1.005f + cubeOffsetX, -1.005f + cubeOffsetY, -1.005f + cubeOffsetZ );
 		
-		glVertex3f( -1.005f, 1.005f, -1.005f );
-		glVertex3f( -1.005f, 1.005f, 1.005f );
-		glVertex3f( -1.005f, 1.005f, 1.005f );
-		glVertex3f( 1.005f, 1.005f, 1.005f );
-		glVertex3f( 1.005f, 1.005f, 1.005f );
-		glVertex3f( 1.005f, 1.005f, -1.005f );
-		glVertex3f( 1.005f, 1.005f, -1.005f );
-		glVertex3f( -1.005f, 1.005f, -1.005f );
+		glVertex3f( -1.005f + cubeOffsetX, 1.005f + cubeOffsetY, -1.005f + cubeOffsetZ );
+		glVertex3f( -1.005f + cubeOffsetX, 1.005f + cubeOffsetY, 1.005f + cubeOffsetZ );
+		glVertex3f( -1.005f + cubeOffsetX, 1.005f + cubeOffsetY, 1.005f + cubeOffsetZ );
+		glVertex3f( 1.005f + cubeOffsetX, 1.005f + cubeOffsetY, 1.005f + cubeOffsetZ );
+		glVertex3f( 1.005f + cubeOffsetX, 1.005f + cubeOffsetY, 1.005f + cubeOffsetZ );
+		glVertex3f( 1.005f + cubeOffsetX, 1.005f + cubeOffsetY, -1.005f + cubeOffsetZ );
+		glVertex3f( 1.005f + cubeOffsetX, 1.005f + cubeOffsetY, -1.005f + cubeOffsetZ );
+		glVertex3f( -1.005f + cubeOffsetX, 1.005f + cubeOffsetY, -1.005f + cubeOffsetZ );
 		
-		glVertex3f( -1.005f, -1.005f, -1.005f );
-		glVertex3f( -1.005f, 1.005f, -1.005f );
-		glVertex3f( -1.005f, -1.005f, 1.005f );
-		glVertex3f( -1.005f, 1.005f, 1.005f );
-		glVertex3f( 1.005f, -1.005f, 1.005f );
-		glVertex3f( 1.005f, 1.005f, 1.005f );
-		glVertex3f( 1.005f, -1.005f, -1.005f );
-		glVertex3f( 1.005f, 1.005f, -1.005f );
+		glVertex3f( -1.005f + cubeOffsetX, -1.005f + cubeOffsetY, -1.005f + cubeOffsetZ );
+		glVertex3f( -1.005f + cubeOffsetX, 1.005f + cubeOffsetY, -1.005f + cubeOffsetZ );
+		glVertex3f( -1.005f + cubeOffsetX, -1.005f + cubeOffsetY, 1.005f + cubeOffsetZ );
+		glVertex3f( -1.005f + cubeOffsetX, 1.005f + cubeOffsetY, 1.005f + cubeOffsetZ );
+		glVertex3f( 1.005f + cubeOffsetX, -1.005f + cubeOffsetY, 1.005f + cubeOffsetZ );
+		glVertex3f( 1.005f + cubeOffsetX, 1.005f + cubeOffsetY, 1.005f + cubeOffsetZ );
+		glVertex3f( 1.005f + cubeOffsetX, -1.005f + cubeOffsetY, -1.005f + cubeOffsetZ );
+		glVertex3f( 1.005f + cubeOffsetX, 1.005f + cubeOffsetY, -1.005f + cubeOffsetZ );
 
-		glEnd();
+//		glEnd();
 	}
 
 	public static void basicText( Object s )
@@ -1035,4 +1073,16 @@ public class Utility
 		glPopMatrix();
 	}
 	
+	public static void manageFPS()
+	{
+		if( !initFpsCounter ) { lastFPS = (Sys.getTime() * 1000) / Sys.getTimerResolution(); initFpsCounter = true; }
+		
+	    if ( ( Sys.getTime() * 1000 ) / Sys.getTimerResolution() - lastFPS > 1000 )
+	    {
+	        fps = fpsCounter;
+	        fpsCounter = 0;
+	        lastFPS += 1000;
+	    }
+	    fpsCounter++;
+	}
 }
