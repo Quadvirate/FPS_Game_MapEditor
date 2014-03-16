@@ -1,10 +1,7 @@
 package core;
 
-import static convenience.Utility.*;
-import static org.lwjgl.opengl.GL11.*;
 import java.io.BufferedWriter;
 import java.io.File;
-import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileWriter;
 import java.io.IOException;
@@ -14,12 +11,12 @@ import java.util.Scanner;
 import org.lwjgl.BufferUtils;
 import org.lwjgl.LWJGLException;
 import org.lwjgl.input.Cursor;
-import org.lwjgl.input.Keyboard;
 import org.lwjgl.input.Mouse;
 import org.lwjgl.opengl.Display;
 import org.lwjgl.opengl.DisplayMode;
-import org.newdawn.slick.opengl.TextureLoader;
 import player.Player;
+import static org.lwjgl.opengl.GL11.*;
+import static convenience.Utility.*;
 
 public class Engine
 {
@@ -34,29 +31,21 @@ public class Engine
 	 * m -> name -> enter : save map to any name
 	 * c + enter : clear all bytes
 	 * n -> name -> enter : load map from name
-	 * t + enter : teleport selection block to camera
+	 */
+
+	/*
+	 * TODO :
+	 * load map by pressing n
 	 */
 
 	public Player testPlayer;
 
 	private boolean initComplete;
 
-	private ArrayList< String > textures = new ArrayList< String >();
+	private HashMap< String, Byte > map = new HashMap< String, Byte >();
 
-	private ArrayList< HashMap< String, Byte >> map = new ArrayList< HashMap< String, Byte >>();
-
-	private String mapName = "";
+	private String mapName;
 	private boolean acceptNameInput;
-
-	private boolean saving, loading;
-
-	private int xPos, yPos, zPos;
-
-	private boolean uPressed, jPressed, hPressed, kPressed, oPressed, lPressed, returnPressed, leftPressed, rightPressed;
-
-	private boolean loadedTextures;
-
-	private int texSel = 0;
 
 	public void start()
 	{
@@ -78,7 +67,7 @@ public class Engine
 		}
 		Display.destroy();
 	}
-
+	
 	private void setNatives()
 	{
 		String os = System.getProperty( "os.name" );
@@ -121,9 +110,6 @@ public class Engine
 		glBlendFunc( GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA );
 		glEnable( GL_DEPTH_TEST );
 		glDepthFunc( GL_LEQUAL );
-		glCullFace( GL_BACK );
-		glEnable( GL_CULL_FACE );
-		glEnable( GL_TEXTURE_2D );
 
 		//	Invisible mouse
 		Cursor emptyCursor = null;
@@ -136,17 +122,9 @@ public class Engine
 		{}
 	}
 
-	private void loadMap( String mapName )
+	private void loadMap()
 	{
-		if( !loadedTextures )
-		{
-			loadTextures();
-			loadedTextures = true;
-		}
-		for( int i = 0; i < textures.size(); i++ )
-			map.set( i, new HashMap< String, Byte >() );
 		//	load map into an array of Strings
-		int on = 0;
 		try
 		{
 			Scanner mapReader = new Scanner( new File( "res/" + mapName + ".txt" ) );
@@ -154,16 +132,8 @@ public class Engine
 			{
 				//	load map
 				String[] currStr = mapReader.nextLine().split( "," );
-				switch( currStr[0].toCharArray()[0] )
-				{
-					case 'v':
-						byte val = Byte.valueOf( currStr[1] );
-						map.get( on ).put( currStr[2] + "," + currStr[3] + "," + currStr[4], val );
-						break;
-					case 't':
-						on = textures.indexOf( currStr[1] );
-						break;
-				}
+				byte val = Byte.valueOf( currStr[1] );
+				map.put( currStr[2] + "," + currStr[3] + "," + currStr[4], val );
 			}
 			mapReader.close();
 			System.out.println( "\"" + mapName + "\" map loaded" );
@@ -174,50 +144,30 @@ public class Engine
 		}
 	}
 
-	private void loadTextures()
-	{
-		ArrayList< File > images = new ArrayList< File >();
-		for( File f : new File( "res/" ).listFiles() )
-			if( f.toString().substring( f.toString().length() - 4 ).equals( ".png" ) ) images.add( f );
-		try
-		{
-			for( File f : images )
-			{
-				TextureLoader.getTexture( "PNG", new FileInputStream( f ) ).bind();
-				textures.add( f.getName().substring( 0, f.getName().length() - 4 ) );
-				map.add( new HashMap< String, Byte >() );
-				System.out.println( textures.get( textures.size() - 1 ) + " loaded" );
-			}
-		}
-		catch( FileNotFoundException e )
-		{
-			e.printStackTrace();
-		}
-		catch( IOException e )
-		{
-			e.printStackTrace();
-		}
-	}
-
 	private void init()
 	{
 		testPlayer = new Player();
-		loadMap( "pinpoint_ish_fps" );
+		saving = loading = false;
+		mapName = "map";
+		loadMap();
+		acceptNameInput = false;
 	}
+
+	public int xPos, yPos, zPos;
+	public boolean uPressed, jPressed, hPressed, kPressed, oPressed, lPressed, returnPressed;
+
+	private boolean saving, loading;
 
 	private void mainLoop()
 	{
 		//	background grey
 		background( 100, 100, 100 );
 
-		//	if not saving or loading the map
+		//	if not saving the map
 		if( !saving && !loading )
 		{
 			//	draw map
 			drawMap();
-
-			//	manage map textures
-			manageTextures();
 
 			//	block adding / removal logic
 			editingLogic();
@@ -272,65 +222,62 @@ public class Engine
 		glScaled( 150, 150, 150 );
 
 		glLineWidth( 3 );
+		glColor3f( 0, .3f, .3f );
+		glBegin( GL_QUADS );
 
-		//	go through map
+		String[] binaryOf = new String[map.size()];
 		int at = 0;
-		for( HashMap< String, Byte > m : map )
+		for( String key : map.keySet() )
 		{
-			glColor3d( .8, .8, .8 );
-			glBindTexture( GL_TEXTURE_2D, at + 1 );
-			glBegin( GL_QUADS );
-			for( String key : m.keySet() )
-			{
-				glPushMatrix();
-
-				String[] currStr = key.split( "," );
-				cubeOffsetX = Integer.valueOf( currStr[0] ) * 2;
-				cubeOffsetY = Integer.valueOf( currStr[2] ) * 2;
-				cubeOffsetZ = -Integer.valueOf( currStr[1] ) * 8 * 2;
-				String directBinaryOf = Integer.toBinaryString( m.get( key ) + 128 );
-				String binaryOf = String.format( "%08d", Integer.valueOf( directBinaryOf ) );
-
-				for( char b : binaryOf.toCharArray() )
-				{
-					if( b == '1' )
-					{
-						cube();
-					}
-					glTranslated( 0, 0, -2 );
-					cubeOffsetZ -= 2;
-				}
-			}
-			glEnd();
-
-			glBindTexture( GL_TEXTURE_2D, 0 );
-			glColor3d( 0, 0, 0 );
-			glBegin( GL_LINES );
-			for( String key : m.keySet() )
-			{
-				glPushMatrix();
-
-				String[] currStr = key.split( "," );
-				cubeOffsetX = Integer.valueOf( currStr[0] ) * 2;
-				cubeOffsetY = Integer.valueOf( currStr[2] ) * 2;
-				cubeOffsetZ = -Integer.valueOf( currStr[1] ) * 8 * 2;
-				String directBinaryOf = Integer.toBinaryString( m.get( key ) + 128 );
-				String binaryOf = String.format( "%08d", Integer.valueOf( directBinaryOf ) );
-
-				for( char b : binaryOf.toCharArray() )
-				{
-					if( b == '1' )
-					{
-						lineCube();
-					}
-					glTranslated( 0, 0, -2 );
-					cubeOffsetZ -= 2;
-				}
-			}
-			glEnd();
+			String directBinaryOf = Integer.toBinaryString( map.get( key ) + 128 );
+			binaryOf[at] = String.format( "%08d", Integer.valueOf( directBinaryOf ) );
 			at++ ;
-			cubeOffsetX = cubeOffsetY = cubeOffsetZ = 0;
 		}
+		at = 0;
+		//	go through map - blocks
+		for( String key : map.keySet() )
+		{
+			String[] currStr = key.split( "," );
+			cubeOffsetX = Integer.valueOf( currStr[0] ) * 2;
+			cubeOffsetY = Integer.valueOf( currStr[2] ) * 2;
+			cubeOffsetZ = -Integer.valueOf( currStr[1] ) * 8 * 2;
+
+			for( char b : binaryOf[at].toCharArray() )
+			{
+				if( b == '1' )
+				{
+					cube();
+				}
+				cubeOffsetZ -= 2;
+			}
+			at++ ;
+		}
+		cubeOffsetX = cubeOffsetY = cubeOffsetZ = 0;
+		glEnd();
+
+		glColor3f( 0, 0, 0 );
+		glBegin( GL_LINES );
+		at = 0;
+		//	go through map - lines
+		for( String key : map.keySet() )
+		{
+			String[] currStr = key.split( "," );
+			cubeOffsetX = Integer.valueOf( currStr[0] ) * 2;
+			cubeOffsetY = Integer.valueOf( currStr[2] ) * 2;
+			cubeOffsetZ = -Integer.valueOf( currStr[1] ) * 8 * 2;
+
+			for( char b : binaryOf[at].toCharArray() )
+			{
+				if( b == '1' )
+				{
+					lineCube();
+				}
+				cubeOffsetZ -= 2;
+			}
+			at++ ;
+		}
+		cubeOffsetX = cubeOffsetY = cubeOffsetZ = 0;
+		glEnd();
 
 		//	selection cube
 		glColor3f( 1, 0, 0 );
@@ -368,30 +315,20 @@ public class Engine
 		glEnd();
 		glPopMatrix();
 
-		if( Keyboard.isKeyDown( Keyboard.KEY_T ) && Keyboard.isKeyDown( Keyboard.KEY_RETURN ) )
-		{
-			xPos = -(int) ( testPlayer.xPos / 300. );
-			yPos = -(int) ( testPlayer.yPos / 300. );
-			zPos = (int) ( testPlayer.zPos / 300. );
-		}
-
 		//	blue box for every byte
-//		glColor3f( 0, 0, .4f );
-//		glLineWidth( 3 );
-//		for( HashMap< String, Byte > m : map )
-//		{
-//			for( String key : m.keySet() )
-//			{
-//				glPushMatrix();
-//				String[] currStr = key.split( "," );
-//				glTranslated( Integer.valueOf( currStr[0] ) * 2, Integer.valueOf( currStr[2] ) * 2, -Integer.valueOf( currStr[1] ) * 8 * 2 - 7 );
-//				glScaled( 1, 1, 8 );
-//				glBegin( GL_LINES );
-//				lineCube();
-//				glEnd();
-//				glPopMatrix();
-//			}
-//		}
+		glColor3f( 0, 0, .4f );
+		glLineWidth( 3 );
+		for( String key : map.keySet() )
+		{
+			glPushMatrix();
+			String[] currStr = key.split( "," );
+			glTranslated( Integer.valueOf( currStr[0] ) * 2, Integer.valueOf( currStr[2] ) * 2, -Integer.valueOf( currStr[1] ) * 8 * 2 - 7 );
+			glScaled( 1, 1, 8 );
+			glBegin( GL_LINES );
+			lineCube();
+			glEnd();
+			glPopMatrix();
+		}
 
 		//	red lines for axes
 		glColor3f( .4f, 0, 0 );
@@ -409,108 +346,43 @@ public class Engine
 
 	private void editingLogic()
 	{
-		//	if byte already exists
-		boolean onByte = map.get( texSel ).get( xPos + "," + zPos / 8 + "," + yPos ) != null;
-
-		//	if hit enter
-		if( !returnPressed && Keyboard.isKeyDown( Keyboard.KEY_RETURN ) )
+		boolean inByte = map.get( xPos + "," + zPos / 8 + "," + yPos ) != null;
+		//	if enter is pressed
+		if( !keyPressed( "return" ) && returnPressed )
 		{
-			//	change value if it exists
-			if( onByte && !keyPressed( "lshift" ) && xPos >= 0 && yPos >= 0 && zPos >= 0 )
+			//	change value of byte if it already exists
+			if( inByte && !keyPressed( "lshift" ) && xPos >= 0 && yPos >= 0 && zPos >= 0 )
 			{
-				String currByte = String.format( "%08d", Integer.valueOf( Integer.toBinaryString( map.get( texSel ).get( xPos + "," + zPos / 8 + "," + yPos ) + 128 ) ) );
+				String currByte = String.format( "%08d", Integer.valueOf( Integer.toBinaryString( map.get( xPos + "," + zPos / 8 + "," + yPos ) + 128 ) ) );
 				currByte = currByte.substring( 0, zPos % 8 ) + ( currByte.charAt( zPos % 8 ) == '0' ? 1 : 0 ) + currByte.substring( zPos % 8 + 1 );
-				map.get( texSel ).put( xPos + "," + zPos / 8 + "," + yPos, (byte) ( Integer.parseInt( currByte, 2 ) - 128 ) );
+				map.put( xPos + "," + zPos / 8 + "," + yPos, (byte) ( Integer.parseInt( currByte, 2 ) - 128 ) );
 			}
-			//	remove bytes which are empty from any HashMap
+			//	remove bytes which are empty
 			else if( keyPressed( "lshift" ) )
 			{
-				for( int i = 0; i < map.size(); i++ )
-				{
-					ArrayList< String > toRemove = new ArrayList< String >();
-					for( String key : map.get( i ).keySet() )
-						if( map.get( i ).get( key ) == -128 ) toRemove.add( key );
-					for( String remove : toRemove )
-						map.get( i ).remove( remove );
-				}
+				ArrayList< String > toRemove = new ArrayList< String >();
+				for( String key : map.keySet() )
+					if( map.get( key ) == -128 ) toRemove.add( key );
+				for( String remove : toRemove )
+					map.remove( remove );
 			}
 			//	add a byte with a new block
 			else if( xPos >= 0 && yPos >= 0 && zPos >= 0 )
 			{
-				map.get( texSel ).put( xPos + "," + zPos / 8 + "," + yPos, (byte) ( Integer.parseInt( "00000000".substring( 0, zPos % 8 ) + "1" + "00000000".substring( zPos % 8 + 1 ), 2 ) - 128 ) );
+				map.put( xPos + "," + zPos / 8 + "," + yPos, (byte) ( Integer.parseInt( "00000000".substring( 0, zPos % 8 ) + "1" + "00000000".substring( zPos % 8 + 1 ), 2 ) - 128 ) );
 			}
-
-			//	only run once per key press
-			returnPressed = true;
 		}
-		//	allow for next key press
-		if( returnPressed && !Keyboard.isKeyDown( Keyboard.KEY_RETURN ) ) returnPressed = false;
+		returnPressed = keyPressed( "return" );
 
-		if( keyPressed( "c" ) && keyPressed( "return" ) ) for( int i = 0; i < map.size(); i++ )
-			for( String key : map.get( i ).keySet() )
-				map.get( i ).put( key, (byte) -128 );
-	}
-
-	private void manageTextures()
-	{
-		glPushMatrix();
-
-		glTranslated( -Display.getWidth() / 2 + 50, Display.getHeight() - 50, 0 );
-		glScaled( 50, -50, 1 );
-		for( int i = 0; i < textures.size(); i++ )
-		{
-			glColor3d( texSel == i ? 1 : .5, texSel == i ? 1 : .5, texSel == i ? 1 : .5 );
-			glBindTexture( GL_TEXTURE_2D, i + 1 );
-			glBegin( GL_QUADS );
-			glTexCoord2d( 0, 0 );
-			glVertex2d( i * 1.2 + 1, 0 );
-			glTexCoord2d( 1, 0 );
-			glVertex2d( i * 1.2, 0 );
-			glTexCoord2d( 1, 1 );
-			glVertex2d( i * 1.2, 1 );
-			glTexCoord2d( 0, 1 );
-			glVertex2d( i * 1.2 + 1, 1 );
-			//			cube();
-			cubeOffsetX += 2.4;
-			glEnd();
-			glBindTexture( GL_TEXTURE_2D, 0 );
-
-			glBegin( GL_LINES );
-			glVertex2d( i * 1.2, 0 );
-			glVertex2d( i * 1.2 + 1, 0 );
-			glVertex2d( i * 1.2 + 1, 0 );
-			glVertex2d( i * 1.2 + 1, 1 );
-			glVertex2d( i * 1.2 + 1, 1 );
-			glVertex2d( i * 1.2, 1 );
-			glVertex2d( i * 1.2, 1 );
-			glVertex2d( i * 1.2, 0 );
-			glEnd();
-		}
-
-		glPopMatrix();
-
-		//	logic
-
-		if( !leftPressed && Keyboard.isKeyDown( Keyboard.KEY_LEFT ) )
-		{
-			leftPressed = true;
-			texSel = texSel == 0 ? textures.size() - 1 : texSel - 1;
-		}
-		if( leftPressed && !Keyboard.isKeyDown( Keyboard.KEY_LEFT ) ) leftPressed = false;
-
-		if( !rightPressed && Keyboard.isKeyDown( Keyboard.KEY_RIGHT ) )
-		{
-			rightPressed = true;
-			texSel = texSel == textures.size() - 1 ? 0 : texSel + 1;
-		}
-		if( rightPressed && !Keyboard.isKeyDown( Keyboard.KEY_RIGHT ) ) rightPressed = false;
+		if( keyPressed( "c" ) && keyPressed( "return" ) ) map.clear();
 	}
 
 	private void drawText()
 	{
-		glColor3d( .8, .8, .8 );
+		glColor3f( 1, 1, 1 );
 		glLineWidth( 1 );
 		glPushMatrix();
+
 		glTranslated( 250, 700, 0 );
 		glScaled( 12, -8, 1 );
 		basicText( "FPS - " + fps );
@@ -518,17 +390,14 @@ public class Engine
 		basicText( String.format( "Player xPos %.2f yPos %.2f zPos %.2f", -testPlayer.xPos / 150., -testPlayer.yPos / 150., testPlayer.zPos / 150. ) );
 		glTranslated( 0, 3.5, 0 );
 		basicText( "Block xPos " + xPos + " yPos " + yPos + " zPos " + zPos );
-		for( int i = 0; i < textures.size(); i++ )
-		{
-			glTranslated( 0, 3.5, 0 );
-			basicText( "Map " + i + " - " + map.get( i ).size() );
-		}
+		glTranslated( 0, 3.5, 0 );
+		basicText( "Bytes " + map.size() );
+
 		glPopMatrix();
 	}
 
 	private void drawCrossHair()
 	{
-		//	cross hare
 		glColor3f( 0, 0, 0 );
 		glBegin( GL_QUADS );
 
@@ -611,12 +480,8 @@ public class Engine
 		try
 		{
 			BufferedWriter mapWriter = new BufferedWriter( new FileWriter( "res/" + mapName + ".txt" ), 256000 );
-			for( int i = 0; i < map.size(); i++ )
-			{
-				if( map.get( i ).size() > 0 ) mapWriter.write( "t," + textures.get( i ) + "\n" );
-				for( String key : map.get( i ).keySet() )
-					mapWriter.write( "v," + map.get( i ).get( key ) + "," + key + "\n" );
-			}
+			for( String key : map.keySet() )
+				mapWriter.write( "v," + map.get( key ) + "," + key + "\n" );
 			mapWriter.close();
 			System.out.println( "saved map to " + mapName + ".txt" );
 		}
@@ -680,7 +545,8 @@ public class Engine
 		//	check if finished loading
 		if( keyPressed( "return" ) )
 		{
-			loadMap( mapName );
+			map.clear();
+			loadMap();
 			loading = false;
 		}
 	}
